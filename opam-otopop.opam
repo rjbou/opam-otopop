@@ -1,0 +1,15 @@
+opam-version: "2.0"
+version: "0.1"
+synopsis: "Saving install instruction in opam files"
+maintainer: "Raja Boujbel <rjbou@ocamlpro.com>"
+authors: "Raja Boujbel <rjbou@ocamlpro.com>"
+homepage: "https://github.com/rjbou/opam-otopop"
+bug-reports: "https://github.com/rjbou/opam-otopop/issues"
+dev-repo: "git+https://github.com/rjbou/opam-otopop.git"
+depends: [
+  "cmdliner" {>= "1.0"}
+  "opam-client"
+  "opam-repository"
+]
+build: ["dune" "build" "-p" name]
+flags: plugin

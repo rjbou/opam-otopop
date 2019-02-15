@@ -1,0 +1,6 @@
+(executable
+ (name otopop)
+ (public_name opam-otopop)
+ (libraries opam-client opam-repository)
+ (package opam-otopop)
+)
