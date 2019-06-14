@@ -103,17 +103,22 @@ let opam_files_in_dir d =
   List.map (fun (_,f) -> OpamFile.filename f)
     (OpamPinned.files_in_source d)
 
+let check_opam_file_error = "check_opam_file"
+let error_and_exit err =
+  OpamConsole.error "%s" err;
+  failwith check_opam_file_error
+
 let check_opam_file output =
   let strf f = OpamConsole.colorise `underline (OpamFilename.to_string f) in
   let get_from_dir d =
     (match opam_files_in_dir d with
      | [file] -> file
      | [] ->
-       OpamConsole.error_and_exit `Not_found
-         "No opam file in %s" (OpamFilename.Dir.to_string d)
+       error_and_exit (Printf.sprintf "No opam file in %s"
+                         (OpamFilename.Dir.to_string d))
      | _ ->
-       OpamConsole.error_and_exit `Not_found
-         "Multiple opam files in %s" (OpamFilename.Dir.to_string d))
+       error_and_exit (Printf.sprintf "Multiple opam files in %s"
+                         (OpamFilename.Dir.to_string d)))
   in
   let file =
     match output with
@@ -127,26 +132,33 @@ let check_opam_file output =
       if OpamConsole.confirm "Update local opam file %s?" (strf f) then
         f
       else
-        OpamStd.Sys.exit_because `Aborted
+        error_and_exit "Aborted"
   in
   (* test that there is no parsing error *)
   let warnerr, _ = OpamFileTools.lint_file (OpamFile.make file) in
   let warn, err =
-    List.fold_left (fun (w,e) (n,we,_s) ->
+    List.fold_left (fun (w,e) (n,we,s) ->
         match we with
-        | `Warning -> n::w, e
-        | `Error -> w, n::e) ([],[]) warnerr
+        | `Warning -> (n,s)::w, e
+        | `Error -> w, (n,s)::e) ([],[]) warnerr
   in
-  if err <> [] then
-    OpamConsole.error_and_exit `File_error "Linting error%s %s found in %s."
-      (match err with | [_] -> "" | _ -> "s")
-      (OpamStd.List.to_string string_of_int err |> OpamConsole.colorise `bold)
-      (strf file)
-  else if warn <> [] then
-    OpamConsole.warning "Linting warning%s %s found in %s."
-      (match warn with | [_] -> "" | _ -> "s")
-      (OpamStd.List.to_string string_of_int warn |> OpamConsole.colorise `bold)
-      (strf file)
+  let lint_str =
+    (Printf.sprintf  "Linting %s found in %s.\n%s"
+       (let s_lst we = if List.length we = 1 then "" else "s" in
+        match warn,err with
+        | [],[] -> ""
+        | [],_ -> "error" ^ (s_lst err)
+        | _,[] -> "warning" ^ (s_lst warn)
+        | _,_ ->
+          Printf.sprintf "error%s and warning%s"
+            (s_lst err) (s_lst warn))
+       (strf file)
+       (OpamFileTools.warns_to_string warnerr))
+  in
+  if err <> [] || warn <> [] then
+    error_and_exit lint_str
+  else if warn <> [] then OpamConsole.warning "%s" lint_str
+
 
 let get_opam_file output =
   let get_from_dir d =
@@ -308,18 +320,23 @@ let () =
     | `Error `Exn ->
       Format.pp_print_flush fmt ();
       OpamConsole.msg "\n";
-      OpamConsole.error "opam install ended with a %s exit code:%s\n"
-        (OpamConsole.colorise `bold "non-zero")
-        (let err = Buffer.contents buff in
-         let err_code =
-           OpamStd.Option.Op.(
-             OpamStd.String.cut_at err '!'
-             >>| snd
-             >>= fun s -> OpamStd.String.rcut_at s ')')
-         in
-         match err_code with
-         | Some (c,_) -> Printf.sprintf " %s." (OpamConsole.colorise `bold c)
-         | None -> "\n" ^ (OpamStd.String.remove_prefix ~prefix:"opam-otopop: " err));
+      let err = Buffer.contents buff in
+      if OpamStd.String.contains ~sub:check_opam_file_error err then
+        OpamStd.Sys.exit_because `File_error
+      else
+        OpamConsole.error "opam file check or opam install ended \
+                           with a %s exit code:%s\n"
+          (OpamConsole.colorise `bold "non-zero")
+          (let err_code =
+             OpamStd.Option.Op.(
+               OpamStd.String.cut_at err '!'
+               >>| snd
+               >>= fun s -> OpamStd.String.rcut_at s ')')
+           in
+           match err_code with
+           | Some (c,_) -> Printf.sprintf " %s." (OpamConsole.colorise `bold c)
+           | None ->
+             "\n" ^ (OpamStd.String.remove_prefix ~prefix:"opam-otopop: " err));
       true
     | `Error (`Term | `Parse) ->
       Format.pp_print_flush fmt ();
