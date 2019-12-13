@@ -24,7 +24,7 @@ version related filters (version constraints are all removed):
 $ opam show -f depends: ./foo.opam
 "lorem"
 "ipsum"
-"ago" {<= "1.0" & build}
+"bar" {<= "1.0" & build}
 
 $ opam otopop "bar<0.5" "bar>0.2"
 Update local opam file foo.opam? [Y/n] y
