@@ -8,8 +8,9 @@ bug-reports: "https://github.com/rjbou/opam-otopop/issues"
 dev-repo: "git+https://github.com/rjbou/opam-otopop.git"
 depends: [
   "cmdliner" {>= "1.0"}
-  "opam-client" { < "2.1.0~beta" }
-  "opam-repository" { < "2.1.0~beta" }
+  "opam-client" {< "2.1.0~alpha"}
+  "opam-repository" {< "2.1.0~alpha"}
+  "dune"
 ]
 build: ["dune" "build" "-p" name]
 flags: plugin
