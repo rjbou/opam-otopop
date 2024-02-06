@@ -14,3 +14,4 @@ depends: [
 ]
 build: ["dune" "build" "-p" name]
 flags: plugin
+license: "LGPL-2.1-only WITH OCaml-LGPL-linking-exception"
